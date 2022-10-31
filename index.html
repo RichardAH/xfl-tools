@@ -1,0 +1,186 @@
+<html>
+    <head>
+        <title>XFL Tools</title>
+    </head>
+<body>
+    <script>
+        const minMantissa = 1000000000000000n
+const maxMantissa = 9999999999999999n
+const minExponent = -96
+const maxExponent = 80
+
+function make_xfl(exponent, mantissa)
+{
+    // convert types as needed
+    if (typeof(exponent) != 'bigint')
+        exponent = BigInt(exponent);
+
+    if (typeof(mantissa) != 'bigint')
+        mantissa = BigInt(mantissa);
+
+    // canonical zero
+    if (mantissa == 0n)
+        return 0n;
+
+    // normalize
+    let is_negative = mantissa < 0;
+    if (is_negative)
+        mantissa *= -1n;
+
+    while (mantissa > maxMantissa)
+    {
+        mantissa /= 10n;
+        exponent++;
+    }
+    while (mantissa < minMantissa)
+    {
+        mantissa *= 10n;
+        exponent--;
+    }
+
+    // canonical zero on mantissa underflow
+    if (mantissa == 0)
+        return 0n;
+
+    // under and overflows
+    if (exponent > maxExponent || exponent < minExponent)
+        return -1; // note this is an "invalid" XFL used to propagate errors
+
+    exponent += 97n;
+
+    let xfl = (!is_negative ? 1n : 0n);
+    xfl <<= 8n;
+    xfl |= BigInt(exponent);
+    xfl <<= 54n;
+    xfl |= BigInt(mantissa);
+
+    return xfl;
+}
+
+function get_exponent(xfl)
+{
+    if (xfl < 0n)
+        throw "Invalid XFL";
+    if (xfl == 0n)
+        return 0n;
+    return ((xfl >> 54n) & 0xFFn) - 97n;
+}
+
+function get_mantissa(xfl)
+{
+    if (xfl < 0n)
+        throw "Invalid XFL";
+    if (xfl == 0n)
+        return 0n;
+    return xfl - ((xfl >> 54n)<< 54n);
+}
+
+function is_negative(xfl)
+{
+    if (xfl < 0n)
+        throw "Invalid XFL";
+    if (xfl == 0n)
+        return false;
+    return ((xfl >> 62n) & 1n) == 0n;
+}
+
+function to_string(xfl)
+{
+    if (xfl < 0n)
+        throw "Invalid XFL";
+    if (xfl == 0n)
+        return "<zero>";
+    return (is_negative(xfl) ? "-" : "+") +
+            get_mantissa(xfl).toString() + "E" + get_exponent(xfl).toString();
+
+}
+    function getAll()
+    {
+        let m = document.getElementById('man').value.trim();
+        if (m.length > 1 && m.charCodeAt(0) == 45)
+                m = m.substr(1)
+
+        return {
+            man: BigInt(m)
+                * (document.getElementById('neg').checked ? -1n : 1n),
+            exp: BigInt(document.getElementById('exp').value),
+            xfl: BigInt(document.getElementById('xfl').value),
+            dec: parseFloat(document.getElementById('dec').value)
+        };
+    }
+
+    function setAll(ctx)
+    {
+        ctx.man = BigInt(ctx.man);
+        ctx.exp = BigInt(ctx.exp);
+        ctx.xfl = BigInt(ctx.xfl);
+        document.getElementById('neg').checked = ctx.man < 0;
+        document.getElementById('man').value =
+            (ctx.man * (ctx.man < 0n ? -1n : 1n)).toString();
+        document.getElementById('exp').value = ctx.exp.toString();
+        document.getElementById('xfl').value = ctx.xfl.toString();
+
+            let d = parseFloat(ctx.dec.toString()).toString();
+        document.getElementById('dec').value = d;
+    }
+
+    function cm()
+    {
+        let ctx = getAll();
+        ctx.xfl = BigInt(make_xfl(ctx.exp, ctx.man));
+        ctx.dec = to_string(ctx.xfl);
+        setAll(ctx);
+    }
+
+    function cx()
+    {
+        let ctx = getAll();
+        ctx.man = get_mantissa(ctx.xfl);
+        ctx.exp = get_exponent(ctx.xfl);
+        ctx.neg = is_negative(ctx.xfl);
+        ctx.dec = parseFloat(to_string(ctx.xfl));
+        setAll(ctx);
+    }
+
+
+    function cd()
+    {
+        let ctx = getAll();
+        ctx.dec = parseFloat(ctx.dec);
+
+        let e = 0;
+        let d = ctx.dec; 
+        let s = ctx.dec.toString().split('.');
+        if (s.length == 2)
+        {
+            e = -s[1].length;
+            d *= (10 ** (-e));
+            d = d.toString();
+            s = d.split('.')
+            d = BigInt(s[0])
+        }
+        else if (s.length > 2)
+            d = 0n;
+
+        ctx.xfl = BigInt(make_xfl(e, d));
+        ctx.man = get_mantissa(ctx.xfl);
+        ctx.exp = get_exponent(ctx.xfl);
+        ctx.neg = is_negative(ctx.xfl);
+        ctx.dec = to_string(ctx.xfl);
+        setAll(ctx);
+    }
+    </script>
+
+    <h1>
+        XFL Tools
+    </h1>
+    <p><a href="https://github.com/XRPLF/XRPL-Standards/discussions/39">XLS-17d XFL Standard</a></p>
+    <p>Make a change anywhere below to see the updated values</p>
+    <table>
+        <tr><td>Negative</td><td><input type="checkbox" id="neg" onchange="cm()"></td></tr>
+        <tr><td>Mantissa</td><td><input size="100" type="text" id="man" value="0" onchange="cm()"></td></tr>
+        <tr><td>Exponent</td><td><input size="100" type="text" id="exp" value="0" onchange="cm()"></td></tr>
+        <tr><td>XFL</td><td><input size="100" type="text" id="xfl" value="0" onchange="cx()"></td></tr>
+        <tr><td>Decimal</td><td><input size="100" type="text" id="dec" onchange="cd()"></td></tr>
+    </table>
+
