@@ -96,19 +96,23 @@ function to_string(xfl)
 }
     function getAll()
     {
-        let m = document.getElementById('man').value.trim();
+        let m = clean(document.getElementById('man').value);
         if (m.length > 1 && m.charCodeAt(0) == 45)
                 m = m.substr(1)
 
         return {
             man: BigInt(m)
                 * (document.getElementById('neg').checked ? -1n : 1n),
-            exp: BigInt(document.getElementById('exp').value),
-            xfl: BigInt(document.getElementById('xfl').value),
-            dec: parseFloat(document.getElementById('dec').value)
+            exp: BigInt(clean(document.getElementById('exp').value)),
+            xfl: BigInt(clean(document.getElementById('xfl').value)),
+            dec: parseFloat(clean(document.getElementById('dec').value))
         };
     }
 
+    function clean(inp)
+    {
+        return ("" + inp).toLowerCase().replace("ll", "").trim();
+    }
     function setAll(ctx)
     {
         ctx.man = BigInt(ctx.man);
@@ -146,7 +150,6 @@ function to_string(xfl)
     function cd()
     {
         let ctx = getAll();
-        ctx.dec = parseFloat(ctx.dec);
 
         let e = 0;
         ctx.xfl = float_to_xfl(ctx.dec);
@@ -180,7 +183,7 @@ function to_string(xfl)
         return make_xfl(e,d);
     }
 
-    function randxfls(n, f, fn)
+    function randxfls(n, f, fn, sing)
     {
 
         let out = "";
@@ -197,26 +200,54 @@ function to_string(xfl)
             
             if (typeof(f) == "function")
             {
-                let exp2 = (r[4] % 176) - 96;
-                let man2 = (BigInt(r[5] + "" + r[6]) % 8999999999999999n) + 1000000000000000n;
-                if (r[7] % 2 == 0)
-                        man2 *= -1n;
-                let xfl2 = make_xfl(exp2, man2);
-
-                let res = f(parseFloat(to_string(xfl)), parseFloat(to_string(xfl2)));
-                let xfl3 = float_to_xfl(res);
-                if (xfl3 < 0n)
+                if (sing)
                 {
-                    i--;
-                    continue;
+                    let res = f(parseFloat(to_string(xfl)));
+                    if (res === undefined)
+                    {
+                        i--;
+                        continue;
+                    }
+                    let xfl3 = float_to_xfl(res);
+                    if (xfl3 < 0n)
+                    {
+                        i--;
+                        continue;
+                    }
+
+                    out += "ASSERT_EQUAL(" + 
+                                fn + "(" + 
+                                    ("" + xfl) + " /* " + parseFloat(to_string(xfl)) + " */), " +
+                                    ("" + xfl3) + " /* " + parseFloat(to_string(xfl3)) + " */); <br/>";
+
                 }
+                else
+                {
+                    let exp2 = (r[4] % 176) - 96;
+                    let man2 = (BigInt(r[5] + "" + r[6]) % 8999999999999999n) + 1000000000000000n;
+                    if (r[7] % 2 == 0)
+                            man2 *= -1n;
+                    let xfl2 = make_xfl(exp2, man2);
 
-                out += "ASSERT_EQUAL(" + 
-                            fn + "(" + 
-                                ("" + xfl) + " /* " + parseFloat(to_string(xfl)) + " */," +
-                                ("" + xfl2) + " /* " + parseFloat(to_string(xfl2)) + " */), " +
-                                ("" + xfl3) + " /* " + parseFloat(to_string(xfl3)) + " */); <br/>";
+                    let res = f(parseFloat(to_string(xfl)), parseFloat(to_string(xfl2)));
+                    if (res === undefined)
+                    {
+                        i--;
+                        continue;
+                    }
+                    let xfl3 = float_to_xfl(res);
+                    if (xfl3 < 0n)
+                    {
+                        i--;
+                        continue;
+                    }
 
+                    out += "ASSERT_EQUAL(" + 
+                                fn + "(" + 
+                                    ("" + xfl) + " /* " + parseFloat(to_string(xfl)) + " */," +
+                                    ("" + xfl2) + " /* " + parseFloat(to_string(xfl2)) + " */), " +
+                                    ("" + xfl3) + " /* " + parseFloat(to_string(xfl3)) + " */); <br/>";
+                }
             }
             else
             {
@@ -248,7 +279,9 @@ function to_string(xfl)
     <br/>
     <button onclick="randxfls(10)">10 Random XFLs</button><br />
     <button onclick="randxfls(20, (x,y)=>{return x*y}, 'float_multiply')">20 Random XFL multiplications</button><br />
-    <button onclick="randxfls(20, (x,y)=>{return y == 0 ? -1 : x/y}, 'float_divide')">20 Random XFL divisions</button><br />
+    <button onclick="randxfls(20, (x,y)=>{return y == 0 ? undefined : x/y}, 'float_divide')">20 Random XFL divisions</button><br />
     <button onclick="randxfls(20, (x,y)=>{return x+y}, 'float_sum')">20 Random XFL additions</button><br />
+    <button onclick="randxfls(20, (x)=>{return x == 0 ? undefined : 1/x}, 'float_invert', true)">20 Random XFL inversions</button><br />
+    <button onclick="randxfls(20, (x)=>{return -x}, 'float_negate', true)">20 Random XFL negations</button><br />
     <blockquote style="font-family:monospace;" id="randxfls">
     </blockquote>
