@@ -104,10 +104,23 @@ function to_string(xfl)
         else if (m.length < 16)
             m += '0'.repeat(16 - m.length);
 
+        let e = BigInt(
+            clean(document.getElementById('exp').value).replace(/[^0-9\-]/, '')
+        );
+
+        m = BigInt(m);
+        if (m < minMantissa)
+            m = minMantissa;
+        else if (m > maxMantissa)
+            m = maxMantissa;
+
+        if (e > maxExponent) e = maxExponent;
+        else if (e < minExponent) e = minExponent;
+        
         return {
-            man: BigInt(m)
+            man: m
                 * (document.getElementById('neg').checked ? -1n : 1n),
-            exp: BigInt(clean(document.getElementById('exp').value)),
+            exp: BigInt(e),
             xfl: BigInt(clean(document.getElementById('xfl').value)),
             dec: parseFloat(clean(document.getElementById('dec').value))
         };
