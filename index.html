@@ -99,6 +99,10 @@ function to_string(xfl)
         let m = clean(document.getElementById('man').value);
         if (m.length > 1 && m.charCodeAt(0) == 45)
                 m = m.substr(1)
+        if (m.length > 16)
+            m = m.substr(0,16);
+        else if (m.length < 16)
+            m += '0'.repeat(16 - m.length);
 
         return {
             man: BigInt(m)
