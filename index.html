@@ -135,7 +135,7 @@ function to_string(xfl)
         ctx.man = BigInt(ctx.man);
         ctx.exp = BigInt(ctx.exp);
         ctx.xfl = BigInt(ctx.xfl);
-        document.getElementById('neg').checked = ctx.man < 0;
+        document.getElementById('neg').checked = typeof(ctx.neg) != 'undefined' ? ctx.neg : ctx.man < 0;
         document.getElementById('man').value =
             (ctx.man * (ctx.man < 0n ? -1n : 1n)).toString();
         document.getElementById('exp').value = ctx.exp.toString();
@@ -268,9 +268,9 @@ function to_string(xfl)
             }
             else
             {
-                let xfl_str = ("" + xfl);
+                let xfl_str = ("" + xfl) + "LL";
                 let dec_str = to_string(xfl);
-                out += xfl_str + " /* " + dec_str + " */ </br>";
+                out += xfl_str + " /* " + parseFloat(dec_str) + " */ </br>";
             }
         }
 
@@ -294,6 +294,7 @@ function to_string(xfl)
     </table>
 
     <br/>
+    <h2>Test building tools</h2>
     <button onclick="randxfls(10)">10 Random XFLs</button><br />
     <button onclick="randxfls(20, (x,y)=>{return x*y}, 'float_multiply')">20 Random XFL multiplications</button><br />
     <button onclick="randxfls(20, (x,y)=>{return y == 0 ? undefined : x/y}, 'float_divide')">20 Random XFL divisions</button><br />
