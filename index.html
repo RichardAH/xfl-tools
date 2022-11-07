@@ -149,26 +149,87 @@ function to_string(xfl)
         ctx.dec = parseFloat(ctx.dec);
 
         let e = 0;
-        let d = ctx.dec; 
-        let s = ctx.dec.toString().split('.');
-        if (s.length == 2)
-        {
-            e = -s[1].length;
-            d *= (10 ** (-e));
-            d = d.toString();
-            s = d.split('.')
-            d = BigInt(s[0])
-        }
-        else if (s.length > 2)
-            d = 0n;
-
-        ctx.xfl = BigInt(make_xfl(e, d));
+        ctx.xfl = float_to_xfl(ctx.dec);
         ctx.man = get_mantissa(ctx.xfl);
         ctx.exp = get_exponent(ctx.xfl);
         ctx.neg = is_negative(ctx.xfl);
         ctx.dec = to_string(ctx.xfl);
         setAll(ctx);
     }
+
+    function float_to_xfl(fl)
+    {
+        let e = 0;
+        let d = "" + parseFloat(""+fl);
+        d = d.toLowerCase();
+        let s = d.split('e')
+        if (s.length == 2)
+        {
+            e = parseInt(s[1]);
+            d = s[0];
+        }
+        s = d.split('.');
+        if (s.length == 2)
+        {
+            d = d.replace('.','');
+            e -= s[1].length;
+        }
+        else if (s.length > 2)
+            d = 0n;
+
+        return make_xfl(e,d);
+    }
+
+    function randxfls(n, f, fn)
+    {
+
+        let out = "";
+
+        for (let i = 0; i < n; ++i)
+        {
+            const r = new Uint32Array(n);
+            self.crypto.getRandomValues(r);
+            let exp = (r[0] % 176) - 96;
+            let man = (BigInt(r[1] + "" + r[2]) % 8999999999999999n) + 1000000000000000n;
+            if (r[3] % 2 == 0)
+                    man *= -1n;
+            let xfl = make_xfl(exp, man);
+            
+            if (typeof(f) == "function")
+            {
+                let exp2 = (r[4] % 176) - 96;
+                let man2 = (BigInt(r[5] + "" + r[6]) % 8999999999999999n) + 1000000000000000n;
+                if (r[7] % 2 == 0)
+                        man2 *= -1n;
+                let xfl2 = make_xfl(exp2, man2);
+
+                let res = f(parseFloat(to_string(xfl)), parseFloat(to_string(xfl2)));
+                let xfl3 = float_to_xfl(res);
+                if (xfl3 < 0n)
+                {
+                    i--;
+                    continue;
+                }
+
+                out += "ASSERT_EQUAL(" + 
+                            fn + "(" + 
+                                ("" + xfl) + " /* " + parseFloat(to_string(xfl)) + " */," +
+                                ("" + xfl2) + " /* " + parseFloat(to_string(xfl2)) + " */), " +
+                                ("" + xfl3) + " /* " + parseFloat(to_string(xfl3)) + " */); <br/>";
+
+            }
+            else
+            {
+                let xfl_str = ("" + xfl);
+                let dec_str = to_string(xfl);
+                out += xfl_str + " /* " + dec_str + " */ </br>";
+            }
+        }
+
+        document.getElementById("randxfls").innerHTML = out;
+
+    }
+
     </script>
 
     <h1>
@@ -184,3 +245,10 @@ function to_string(xfl)
         <tr><td>Decimal</td><td><input size="100" type="text" id="dec" onchange="cd()"></td></tr>
     </table>
 
+    <br/>
+    <button onclick="randxfls(10)">10 Random XFLs</button><br />
+    <button onclick="randxfls(20, (x,y)=>{return x*y}, 'float_multiply')">20 Random XFL multiplications</button><br />
+    <button onclick="randxfls(20, (x,y)=>{return y == 0 ? -1 : x/y}, 'float_divide')">20 Random XFL divisions</button><br />
+    <button onclick="randxfls(20, (x,y)=>{return x+y}, 'float_sum')">20 Random XFL additions</button><br />
+    <blockquote style="font-family:monospace;" id="randxfls">
+    </blockquote>
