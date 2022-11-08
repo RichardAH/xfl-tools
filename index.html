@@ -200,7 +200,7 @@ function to_string(xfl)
         return make_xfl(e,d);
     }
 
-    function randxfls(n, f, fn, sing)
+    function randxfls(n, f, fn, sing, raw)
     {
 
         let out = "";
@@ -219,24 +219,33 @@ function to_string(xfl)
             {
                 if (sing)
                 {
-                    let res = f(parseFloat(to_string(xfl)));
+                    let res = f(raw ? xfl : parseFloat(to_string(xfl)));
                     if (res === undefined)
                     {
                         i--;
                         continue;
                     }
-                    let xfl3 = float_to_xfl(res);
-                    if (xfl3 < 0n)
+                    if (raw)
                     {
-                        i--;
-                        continue;
+                        out += "ASSERT_EQUAL(" + 
+                            fn + "(" + 
+                                ("" + xfl) + "LL /* " + parseFloat(to_string(xfl)) + " */), " +
+                                ("" + res) + "LL); <br/>";
                     }
+                    else
+                    {
+                        let xfl3 = float_to_xfl(res);
+                        if (xfl3 < 0n)
+                        {
+                            i--;
+                            continue;
+                        }
 
-                    out += "ASSERT_EQUAL(" + 
+                            out += "ASSERT_EQUAL(" + 
                                 fn + "(" + 
                                     ("" + xfl) + "LL /* " + parseFloat(to_string(xfl)) + " */), " +
                                     ("" + xfl3) + "LL /* " + parseFloat(to_string(xfl3)) + " */); <br/>";
-
+                    }
                 }
                 else
                 {
@@ -301,5 +310,7 @@ function to_string(xfl)
     <button onclick="randxfls(20, (x,y)=>{return x+y}, 'float_sum')">20 Random XFL additions</button><br />
     <button onclick="randxfls(20, (x)=>{return x == 0 ? undefined : 1/x}, 'float_invert', true)">20 Random XFL inversions</button><br />
     <button onclick="randxfls(20, (x)=>{return -x}, 'float_negate', true)">20 Random XFL negations</button><br />
+    <button onclick="randxfls(20, (x)=>{return get_mantissa(x)}, 'float_mantissa', true, true)">20 Random XFL mantissas</button><br />
+
     <blockquote style="font-family:monospace;" id="randxfls">
     </blockquote>
