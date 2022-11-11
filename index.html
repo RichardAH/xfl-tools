@@ -200,7 +200,7 @@ function to_string(xfl)
         return make_xfl(e,d);
     }
 
-    function randxfls(n, f, fn, sing, raw)
+    function randxfls(n, f, fn, sing, raw, parts, result)
     {
 
         let out = "";
@@ -217,6 +217,18 @@ function to_string(xfl)
             
             if (typeof(f) == "function")
             {
+                if (parts)
+                {
+                    let params = [];
+                    for (let i = 0; i < parts.length; ++i)
+                    {
+                        params[i] = eval(parts[i][0]);
+                        if (parts[i].length > 1)
+                            params[i] += parts[i][1];
+                    }
+                    out += "ASSERT(" + fn + "(" + params.join(',') + ")) == " + eval(result) + "LL); <br/>";
+                }
+                else
                 if (sing)
                 {
                     let res = f(raw ? xfl : parseFloat(to_string(xfl)));
@@ -311,6 +323,8 @@ function to_string(xfl)
     <button onclick="randxfls(20, (x)=>{return x == 0 ? undefined : 1/x}, 'float_invert', true)">20 Random XFL inversions</button><br />
     <button onclick="randxfls(20, (x)=>{return -x}, 'float_negate', true)">20 Random XFL negations</button><br />
     <button onclick="randxfls(20, (x)=>{return get_mantissa(x)}, 'float_mantissa', true, true)">20 Random XFL mantissas</button><br />
+    <button onclick="randxfls(20, (x,y)=>{return make_xfl(x,y)}, 'float_set', false, false, [['exp'], ['man', 'LL']], 'xfl')">20 Random XFL float_set</button><br />
+    <button onclick="randxfls(20, (x)=>{return is_negative(x) ? 1 : 0}, 'float_sign', true, true)">20 Random XFL float_sign</button><br />
 
     <blockquote style="font-family:monospace;" id="randxfls">
     </blockquote>
