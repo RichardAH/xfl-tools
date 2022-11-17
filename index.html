@@ -226,7 +226,13 @@ function to_string(xfl)
                         if (parts[i].length > 1)
                             params[i] += parts[i][1];
                     }
-                    out += "ASSERT(" + fn + "(" + params.join(',') + ")) == " + eval(result) + "LL); <br/>";
+                    let a =  fn + "(" + params.join(',') + ")";
+                    let b = eval(result) + "LL";
+                    out += raw ? 'ASSERT(' : 'ASSERT_EQUAL(';
+                    out += a;
+                    out += raw ? ' == ' : ', ';
+                    out += b;
+                    out += '); <br/>';
                 }
                 else
                 if (sing)
@@ -326,7 +332,7 @@ function to_string(xfl)
     <button onclick="randxfls(20, (x,y)=>{return make_xfl(x,y)}, 'float_set', false, false, [['exp'], ['man', 'LL']], 'xfl')">20 Random XFL float_set</button><br />
     <button onclick="randxfls(20, (x)=>{return is_negative(x) ? 1 : 0}, 'float_sign', true, true)">20 Random XFL float_sign</button><br />
     <button onclick="randxfls(20, (x)=>{return get_exponent(x)}, 'float_exponent', true, true)">20 Random XFL exponents</button><br />
-    <button onclick="randxfls(20, (exp,man,y,z)=>{return float_to_xfl(((man * 10 ** exp) *y)/z)}, 'float_mulratio', false, false, [['xfl', 'LL'], [['0', 'U']], ['r[4]', 'U'], ['r[5]', 'U']], 'f(exp, parseFloat(man.toString()), r[4], r[5])')">20 Random XFL mulratios</button><br />
+    <button onclick="randxfls(20, (exp,man,y,z)=>{return float_to_xfl(((man * 10 ** exp) *y)/z)}, 'float_mulratio', false, false, [['xfl', 'LL'], ['0', 'U'], ['r[4]', 'U'], ['r[5]', 'U']], 'f(exp, parseFloat(man.toString()), r[4], r[5])')">20 Random XFL mulratios</button><br />
 
     <blockquote style="font-family:monospace;" id="randxfls">
     </blockquote>
