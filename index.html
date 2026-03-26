@@ -1,5 +1,5 @@
-<html>
-    <head>
+<!DOCTYPE html>
+<html><head>
         <title>XFL Tools</title>
     </head>
 <body>
@@ -11,18 +11,15 @@ const maxExponent = 80
 
 function make_xfl(exponent, mantissa)
 {
-    // convert types as needed
     if (typeof(exponent) != 'bigint')
         exponent = BigInt(exponent);
 
     if (typeof(mantissa) != 'bigint')
         mantissa = BigInt(mantissa);
 
-    // canonical zero
     if (mantissa == 0n)
         return 0n;
 
-    // normalize
     let is_negative = mantissa < 0;
     if (is_negative)
         mantissa *= -1n;
@@ -38,13 +35,11 @@ function make_xfl(exponent, mantissa)
         exponent--;
     }
 
-    // canonical zero on mantissa underflow
     if (mantissa == 0)
         return 0n;
 
-    // under and overflows
     if (exponent > maxExponent || exponent < minExponent)
-        return -1; // note this is an "invalid" XFL used to propagate errors
+        return -1n;
 
     exponent += 97n;
 
@@ -92,8 +87,37 @@ function to_string(xfl)
         return "<zero>";
     return (is_negative(xfl) ? "-" : "+") +
             get_mantissa(xfl).toString() + "E" + get_exponent(xfl).toString();
-
 }
+
+function to_hex_be(xfl)
+{
+    return xfl.toString(16).padStart(16, '0');
+}
+
+function to_hex_le(xfl)
+{
+    const be = xfl.toString(16).padStart(16, '0');
+    let le = '';
+    for (let i = 14; i >= 0; i -= 2)
+        le += be.substr(i, 2);
+    return le;
+}
+
+function from_hex_be(h)
+{
+    const clean = h.replace(/[^0-9a-fA-F]/g, '').padStart(16, '0').substr(0, 16);
+    return BigInt('0x' + clean);
+}
+
+function from_hex_le(h)
+{
+    const clean = h.replace(/[^0-9a-fA-F]/g, '').padStart(16, '0').substr(0, 16);
+    let be = '';
+    for (let i = 14; i >= 0; i -= 2)
+        be += clean.substr(i, 2);
+    return BigInt('0x' + be);
+}
+
     function getAll()
     {
         let m = clean(document.getElementById('man').value);
@@ -130,6 +154,7 @@ function to_string(xfl)
     {
         return ("" + inp).toLowerCase().replace("ll", "").trim();
     }
+
     function setAll(ctx)
     {
         ctx.man = BigInt(ctx.man);
@@ -140,8 +165,10 @@ function to_string(xfl)
             (ctx.man * (ctx.man < 0n ? -1n : 1n)).toString();
         document.getElementById('exp').value = ctx.exp.toString();
         document.getElementById('xfl').value = ctx.xfl.toString();
+        document.getElementById('hbe').value = to_hex_be(ctx.xfl);
+        document.getElementById('hle').value = to_hex_le(ctx.xfl);
 
-            let d = parseFloat(ctx.dec.toString()).toString();
+        let d = parseFloat(ctx.dec.toString()).toString();
         document.getElementById('dec').value = d;
     }
 
@@ -163,17 +190,36 @@ function to_string(xfl)
         setAll(ctx);
     }
 
-
     function cd()
     {
         let ctx = getAll();
-
-        let e = 0;
         ctx.xfl = float_to_xfl(ctx.dec);
         ctx.man = get_mantissa(ctx.xfl);
         ctx.exp = get_exponent(ctx.xfl);
         ctx.neg = is_negative(ctx.xfl);
         ctx.dec = to_string(ctx.xfl);
+        setAll(ctx);
+    }
+
+    function chbe()
+    {
+        let ctx = getAll();
+        ctx.xfl = from_hex_be(document.getElementById('hbe').value);
+        ctx.man = get_mantissa(ctx.xfl);
+        ctx.exp = get_exponent(ctx.xfl);
+        ctx.neg = is_negative(ctx.xfl);
+        ctx.dec = parseFloat(to_string(ctx.xfl));
+        setAll(ctx);
+    }
+
+    function chle()
+    {
+        let ctx = getAll();
+        ctx.xfl = from_hex_le(document.getElementById('hle').value);
+        ctx.man = get_mantissa(ctx.xfl);
+        ctx.exp = get_exponent(ctx.xfl);
+        ctx.neg = is_negative(ctx.xfl);
+        ctx.dec = parseFloat(to_string(ctx.xfl));
         setAll(ctx);
     }
 
@@ -313,26 +359,31 @@ function to_string(xfl)
     <p><a href="https://github.com/XRPLF/XRPL-Standards/discussions/39">XLS-17d XFL Standard</a></p>
     <p>Make a change anywhere below to see the updated values</p>
     <table>
+        <tbody>
         <tr><td>Negative</td><td><input type="checkbox" id="neg" onchange="cm()"></td></tr>
         <tr><td>Mantissa</td><td><input size="100" type="text" id="man" value="0" onchange="cm()"></td></tr>
         <tr><td>Exponent</td><td><input size="100" type="text" id="exp" value="0" onchange="cm()"></td></tr>
         <tr><td>XFL</td><td><input size="100" type="text" id="xfl" value="0" onchange="cx()"></td></tr>
         <tr><td>Decimal</td><td><input size="100" type="text" id="dec" onchange="cd()"></td></tr>
+        <tr><td>Hex (BE)</td><td><input size="100" type="text" id="hbe" value="0000000000000000" onchange="chbe()"></td></tr>
+        <tr><td>Hex (LE)</td><td><input size="100" type="text" id="hle" value="0000000000000000" onchange="chle()"></td></tr>
+        </tbody>
     </table>
 
-    <br/>
+    <br>
     <h2>Test building tools</h2>
-    <button onclick="randxfls(10)">10 Random XFLs</button><br />
-    <button onclick="randxfls(20, (x,y)=>{return x*y}, 'float_multiply')">20 Random XFL multiplications</button><br />
-    <button onclick="randxfls(20, (x,y)=>{return y == 0 ? undefined : x/y}, 'float_divide')">20 Random XFL divisions</button><br />
-    <button onclick="randxfls(20, (x,y)=>{return x+y}, 'float_sum')">20 Random XFL additions</button><br />
-    <button onclick="randxfls(20, (x)=>{return x == 0 ? undefined : 1/x}, 'float_invert', true)">20 Random XFL inversions</button><br />
-    <button onclick="randxfls(20, (x)=>{return -x}, 'float_negate', true)">20 Random XFL negations</button><br />
-    <button onclick="randxfls(20, (x)=>{return get_mantissa(x)}, 'float_mantissa', true, true)">20 Random XFL mantissas</button><br />
-    <button onclick="randxfls(20, (x,y)=>{return make_xfl(x,y)}, 'float_set', false, false, [['exp'], ['man', 'LL']], 'xfl')">20 Random XFL float_set</button><br />
-    <button onclick="randxfls(20, (x)=>{return is_negative(x) ? 1 : 0}, 'float_sign', true, true)">20 Random XFL float_sign</button><br />
-    <button onclick="randxfls(20, (x)=>{return get_exponent(x)}, 'float_exponent', true, true)">20 Random XFL exponents</button><br />
-    <button onclick="randxfls(20, (exp,man,y,z)=>{return float_to_xfl(((man * 10 ** exp) *y)/z)}, 'float_mulratio', false, false, [['xfl', 'LL'], ['0', 'U'], ['r[4]', 'U'], ['r[5]', 'U']], 'f(exp, parseFloat(man.toString()), r[4], r[5])')">20 Random XFL mulratios</button><br />
+    <button onclick="randxfls(10)">10 Random XFLs</button><br>
+    <button onclick="randxfls(20, (x,y)=>{return x*y}, 'float_multiply')">20 Random XFL multiplications</button><br>
+    <button onclick="randxfls(20, (x,y)=>{return y == 0 ? undefined : x/y}, 'float_divide')">20 Random XFL divisions</button><br>
+    <button onclick="randxfls(20, (x,y)=>{return x+y}, 'float_sum')">20 Random XFL additions</button><br>
+    <button onclick="randxfls(20, (x)=>{return x == 0 ? undefined : 1/x}, 'float_invert', true)">20 Random XFL inversions</button><br>
+    <button onclick="randxfls(20, (x)=>{return -x}, 'float_negate', true)">20 Random XFL negations</button><br>
+    <button onclick="randxfls(20, (x)=>{return get_mantissa(x)}, 'float_mantissa', true, true)">20 Random XFL mantissas</button><br>
+    <button onclick="randxfls(20, (x,y)=>{return make_xfl(x,y)}, 'float_set', false, false, [['exp'], ['man', 'LL']], 'xfl')">20 Random XFL float_set</button><br>
+    <button onclick="randxfls(20, (x)=>{return is_negative(x) ? 1 : 0}, 'float_sign', true, true)">20 Random XFL float_sign</button><br>
+    <button onclick="randxfls(20, (x)=>{return get_exponent(x)}, 'float_exponent', true, true)">20 Random XFL exponents</button><br>
+    <button onclick="randxfls(20, (exp,man,y,z)=>{return float_to_xfl(((man * 10 ** exp) *y)/z)}, 'float_mulratio', false, false, [['xfl', 'LL'], ['0', 'U'], ['r[4]', 'U'], ['r[5]', 'U']], 'f(exp, parseFloat(man.toString()), r[4], r[5])')">20 Random XFL mulratios</button><br>
 
     <blockquote style="font-family:monospace;" id="randxfls">
     </blockquote>
+</body></html>
